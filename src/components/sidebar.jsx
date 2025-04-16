@@ -13,7 +13,7 @@ const Sidebar = () => {
     }
     const fileList = [
         {
-            fileName: "index1.html"
+            fileName: "index1.html" 
         },
         {
             fileName: "index2.html"
