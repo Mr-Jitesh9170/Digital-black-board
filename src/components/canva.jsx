@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { UndoDot, RedoDot, Eraser, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { UndoDot, RedoDot, Eraser, ChevronsDown, ChevronsUp, ArrowDownToLine } from 'lucide-react';
 import { useInputChange } from '../hooks/inputeChange';
 
 export const Canva = () => {
@@ -136,6 +136,7 @@ export const Canva = () => {
             canvas.removeEventListener('pointerleave', stopDrawing);
         };
     }, [isDraw, input, isErasing]);
+
     const undoHandler = useCallback(() => {
         setLines(prev => {
             if (!prev.length) return prev;
@@ -146,6 +147,7 @@ export const Canva = () => {
             return updated;
         });
     }, []);
+
     const redoHandler = useCallback(() => {
         setHistory(prev => {
             if (!prev.length) return prev;
@@ -159,58 +161,64 @@ export const Canva = () => {
             return updated;
         });
     }, []);
+
     const deleteHandler = useCallback(() => setIsErasing(prev => !prev), []);
     const colorPickerHandler = useCallback(() => colorRef.current.click(), []);
     const toolsHideHandler = useCallback(() => {
         setTools(prev => ({ ...prev, isWrap: !prev.isWrap }));
     }, []);
+
     return (
         <div className="relative flex justify-center items-center">
-            <div className={`absolute top-4 right-4  bg-white/90 backdrop-blur-sm rounded-lg shadow-lg ${tools.isWrap ? "p-1" : "p-2  gap-2"} flex flex-col`}>
-                <div className='border-2 font-bold border-dotted p-1 rounded-lg flex items-center justify-center gap-1 cursor-pointer' onClick={toolsHideHandler}>
-                    {tools.isWrap ? <ChevronsUp size={17} /> : <ChevronsDown size={17} />}
-                    <span>{tools.isWrap ? "Open" : "Close"}</span>
-                </div>
-                <div className={`flex flex-col gap-2 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.4, 0, 0.2, 1)] ${tools.isWrap ? 'max-h-0 opacity-0 scale-y-90 translate-y-2' : 'max-h-[500px] opacity-100 scale-y-100 translate-y-0'}`}>
-                    <button onClick={undoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
-                        <UndoDot size={18} />
-                        <span className="ml-1 text-sm">Undo</span>
-                    </button>
-                    <button onClick={redoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
-                        <RedoDot size={18} />
-                        <span className="ml-1 text-sm">Redo</span>
-                    </button>
-                    <button onClick={deleteHandler} className={`flex items-center justify-center text-sm ${isErasing ? 'text-red-500' : 'text-gray-700'} hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}>
-                        <Eraser size={18} />
-                        <span className="ml-1 text-sm">Erase</span>
-                    </button>
-                    <div className="flex items-center justify-center">
-                        <input
-                            name="color"
-                            ref={colorRef}
-                            type="color"
-                            value={input.color}
-                            onChange={handleChange}
-                            className="w-10 h-10 border border-gray-300 rounded-md shadow-sm"
-                        />
-                        <button onClick={colorPickerHandler} className="ml-1 text-sm text-gray-700 hover:text-violet-600 p-2 rounded-lg shadow-md hover:shadow-lg">
-                            Color
-                        </button>
+            <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-500 p-[2px] rounded-2xl shadow-[0_0_25px_4px_rgba(255,100,255,0.5)]">
+                <div className={`bg-white/90 backdrop-blur-sm rounded-xl shadow-inner ${tools.isWrap ? "p-1" : "p-2 gap-2"} flex flex-col`}>
+                    <div className='border-2 font-bold border-dotted p-1 rounded-lg flex items-center justify-center gap-1 cursor-pointer' onClick={toolsHideHandler}>
+                        {tools.isWrap ? <ChevronsUp size={17} /> : <ChevronsDown size={17} />}
+                        <span>{tools.isWrap ? "Open" : "Close"}</span>
                     </div>
-                    <div className="flex flex-col items-center justify-center ml-1 text-sm">
-                        <input
-                            name="pencilLineWidth"
-                            type="range"
-                            value={input.pencilLineWidth}
-                            onChange={handleChange}
-                            min={1}
-                            max={20}
-                            className="w-24"
-                        />
-                        <span>{input.pencilLineWidth}px</span>
+                    <div className={`flex flex-col gap-2 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.4, 0, 0.2, 1)] ${tools.isWrap ? 'max-h-0 opacity-0 scale-y-90 translate-y-2' : 'max-h-[500px] opacity-100 scale-y-100 translate-y-0'}`}>
+                        <button onClick={undoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
+                            <UndoDot size={18} />
+                            <span className="ml-1 text-sm">Undo</span>
+                        </button>
+                        <button onClick={redoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
+                            <RedoDot size={18} />
+                            <span className="ml-1 text-sm">Redo</span>
+                        </button>
+                        <button onClick={deleteHandler} className={`flex items-center justify-center text-sm ${isErasing ? 'text-red-500' : 'text-gray-700'} hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}>
+                            <Eraser size={18} />
+                            <span className="ml-1 text-sm">Erase</span>
+                        </button>
+                        <div className="flex items-center justify-center">
+                            <input
+                                name="color"
+                                ref={colorRef}
+                                type="color"
+                                value={input.color}
+                                onChange={handleChange}
+                                className="w-10 h-10 border border-gray-300 rounded-md shadow-sm"
+                            />
+                            <button onClick={colorPickerHandler} className="ml-1 text-sm text-gray-700 hover:text-violet-600 p-2 rounded-lg shadow-md hover:shadow-lg">
+                                Color
+                            </button>
+                        </div>
+                        <div className="flex flex-col items-center justify-center ml-1 text-sm">
+                            <input
+                                name="pencilLineWidth"
+                                type="range"
+                                value={input.pencilLineWidth}
+                                onChange={handleChange}
+                                min={1}
+                                max={20}
+                                className="w-24"
+                            />
+                            <span>{input.pencilLineWidth}px</span>
+                        </div>
+                        <ArrowDownToLine size={28} className='m-auto border-2 border-dotted rounded-4xl p-1 bg-black text-white cursor-pointer' />
                     </div>
                 </div>
             </div>
+
             <canvas
                 ref={canvasRef}
                 style={{ display: 'block', cursor: isErasing ? 'cell' : 'crosshair', touchAction: 'none' }}
