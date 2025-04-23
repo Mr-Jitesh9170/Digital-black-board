@@ -1,18 +1,18 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom"
-import Notes from "./pages/notes"
-import Sidebar from "./components/sidebar"
+import { lazy, Suspense } from "react"
 
-BrowserRouter
+const Notes = lazy(() => import("./pages/notes"))
+
 function App() {
   return (
-    <>
-      <BrowserRouter>
+    <BrowserRouter>
+      <Suspense fallback={<div className="flex justify-center items-center">Loading...</div>}>
         <Routes>
           <Route path="/" element={<Notes />} />
         </Routes>
-      </BrowserRouter>
-    </>
+      </Suspense>
+    </BrowserRouter>
   )
 }
 
-export default App 
+export default App  

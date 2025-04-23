@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { UndoDot, RedoDot, Eraser, LetterText } from 'lucide-react';
+import { UndoDot, RedoDot, Eraser, PenTool } from 'lucide-react';
 import { useInputChange } from '../hooks/inputeChange';
 
 export const Canva = () => {
     const canvasRef = useRef(null);
     const colorRef = useRef(null);
     const [isDraw, setDraw] = useState(false);
+    const [isErasing, setIsErasing] = useState(false);
     const [lines, setLines] = useState([]);
     const [history, setHistory] = useState([]);
     const { input, handleChange } = useInputChange({
@@ -70,26 +71,52 @@ export const Canva = () => {
         const startDrawing = (e) => {
             e.preventDefault();
             setDraw(true);
+            if (isErasing) return;
             const { offsetX, offsetY } = getOffset(e);
-            setLines((prev) => [...prev, {
-                x: offsetX,
-                y: offsetY,
-                color: input.color,
-                pencilLineWidth: input.pencilLineWidth,
-                path: []
-            }]);
+            setLines((prev) => [
+                ...prev,
+                {
+                    x: offsetX,
+                    y: offsetY,
+                    color: input.color,
+                    pencilLineWidth: input.pencilLineWidth,
+                    path: []
+                }
+            ]);
             setHistory([]);
         };
 
         const draw = (e) => {
-            if (!isDraw) return;
+            if (!isDraw && !isErasing) return;
             e.preventDefault();
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
             animationFrameId = requestAnimationFrame(() => {
                 const { offsetX, offsetY } = getOffset(e);
+
+                if (isErasing) {
+                    setLines((prev) =>
+                        prev.filter((line) =>
+                            !line.path.some(
+                                (point) =>
+                                    Math.sqrt(
+                                        (point.x - offsetX) ** 2 +
+                                        (point.y - offsetY) ** 2
+                                    ) < 10
+                            )
+                        )
+                    );
+                    return;
+                }
+
                 setLines((prev) => {
                     const updated = [...prev];
-                    updated[updated.length - 1].path.push({ x: offsetX, y: offsetY, color: input.color, pencilLineWidth: input.pencilLineWidth });
+                    updated[updated.length - 1].path.push({
+                        x: offsetX,
+                        y: offsetY,
+                        color: input.color,
+                        pencilLineWidth: input.pencilLineWidth
+                    });
 
                     const currentLine = updated[updated.length - 1];
                     ctx.beginPath();
@@ -131,7 +158,7 @@ export const Canva = () => {
             canvas.removeEventListener('touchend', stopDrawing);
             canvas.removeEventListener('touchcancel', stopDrawing);
         };
-    }, [isDraw, input]);
+    }, [isDraw, input, isErasing]);
 
     const undoHandler = useCallback(() => {
         if (!lines.length) return;
@@ -149,33 +176,32 @@ export const Canva = () => {
         setLines([...lines, restored]);
     }, [lines, history]);
 
-    const deleteHandler = () => {
-        if (!lines.length) return;
-        setLines((prevLines) => {
-            let data = [...prevLines];
-            data.pop();
-            return data;
-        });
-    };
+    const deleteHandler = useCallback(() => setIsErasing((prev) => !prev), []);
 
-    const colorPickerHandler = () => {
+    const colorPickerHandler = useCallback(() => {
         colorRef.current.click();
-    };
+    }, []);
 
     return (
         <div className="relative flex justify-center items-center">
-            <div className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg px-4 py-4 flex flex-col gap-4">
+            <div className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg px-2 py-2 flex flex-col gap-2">
+                <div className='m-auto border-3 border-dotted p-1 rounded-lg'>
+                    <PenTool size={15}/>
+                </div>
                 <button onClick={undoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
-                    <UndoDot size={24} />
-                    <span className="ml-2">Undo</span>
+                    <UndoDot size={18} />
+                    <span className="ml-1 text-sm">Undo</span>
                 </button>
                 <button onClick={redoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
-                    <RedoDot size={24} />
-                    <span className="ml-2">Redo</span>
+                    <RedoDot size={18} />
+                    <span className="ml-1 text-sm">Redo</span>
                 </button>
-                <button onClick={deleteHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
-                    <Eraser size={24} />
-                    <span className="ml-2">Erase</span>
+                <button
+                    onClick={deleteHandler}
+                    className={`flex items-center justify-center text-sm ${isErasing ? 'text-red-500' : 'text-gray-700'} hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}
+                >
+                    <Eraser size={18} />
+                    <span className="ml-1 text-sm">Erase</span>
                 </button>
                 <div className="flex items-center justify-center">
                     <input
@@ -184,13 +210,13 @@ export const Canva = () => {
                         type="color"
                         value={input.color}
                         onChange={handleChange}
-                        className="w-12 h-12 border border-gray-300 rounded-md shadow-sm"
+                        className="w-10 h-10 border border-gray-300 rounded-md shadow-sm"
                     />
-                    <button onClick={colorPickerHandler} className="ml-2 text-sm text-gray-700 hover:text-violet-600 p-2 rounded-lg shadow-md hover:shadow-lg">
-                        <span>Color</span>
+                    <button onClick={colorPickerHandler} className="ml-1 text-sm text-gray-700 hover:text-violet-600 p-2 rounded-lg shadow-md hover:shadow-lg">
+                        Color
                     </button>
                 </div>
-                <div className="flex flex-col items-center justify-center">
+                <div className="flex flex-col items-center justify-center ml-1 text-sm">
                     <input
                         name="pencilLineWidth"
                         type="range"
@@ -202,14 +228,10 @@ export const Canva = () => {
                     />
                     <span>{input.pencilLineWidth}px</span>
                 </div>
-                <button className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
-                    <LetterText size={24} />
-                    <span className="ml-2">Write</span>
-                </button>
             </div>
             <canvas
                 ref={canvasRef}
-                style={{ display: 'block', cursor: 'crosshair', touchAction: 'none' }}
+                style={{ display: 'block', cursor: isErasing ? 'cell' : 'crosshair', touchAction: 'none' }}
                 className="bg-black w-full h-full"
             />
         </div>
