@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { UndoDot, RedoDot, Eraser, PenTool } from 'lucide-react';
+import { UndoDot, RedoDot, Eraser, ChevronsDown, ChevronsUp } from 'lucide-react';
 import { useInputChange } from '../hooks/inputeChange';
 
 export const Canva = () => {
@@ -13,6 +13,11 @@ export const Canva = () => {
         color: '#fff',
         pencilLineWidth: 2
     });
+    const [tools, setTools] = useState(
+        {
+            isWrap: false
+        }
+    )
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -182,51 +187,58 @@ export const Canva = () => {
         colorRef.current.click();
     }, []);
 
+    const toolsHideHandler = () => {
+        setTools({ ...tools, isWrap: !tools.isWrap })
+    }
+
     return (
         <div className="relative flex justify-center items-center">
-            <div className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg px-2 py-2 flex flex-col gap-2">
-                <div className='m-auto border-3 border-dotted p-1 rounded-lg'>
-                    <PenTool size={15}/>
+            <div className='absolute top-4 right-4  bg-white/90 backdrop-blur-sm rounded-lg shadow-lg px-2 py-2 flex flex-col gap-2'>
+                <div className='border-2 border-dotted p-1 rounded-lg flex items-center justify-center gap-1 cursor-pointer' onClick={toolsHideHandler}>
+                    {tools.isWrap ? <ChevronsUp size={17} /> : <ChevronsDown size={17} />}
+                    <span>Tools</span>
                 </div>
-                <button onClick={undoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
-                    <UndoDot size={18} />
-                    <span className="ml-1 text-sm">Undo</span>
-                </button>
-                <button onClick={redoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
-                    <RedoDot size={18} />
-                    <span className="ml-1 text-sm">Redo</span>
-                </button>
-                <button
-                    onClick={deleteHandler}
-                    className={`flex items-center justify-center text-sm ${isErasing ? 'text-red-500' : 'text-gray-700'} hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}
-                >
-                    <Eraser size={18} />
-                    <span className="ml-1 text-sm">Erase</span>
-                </button>
-                <div className="flex items-center justify-center">
-                    <input
-                        name="color"
-                        ref={colorRef}
-                        type="color"
-                        value={input.color}
-                        onChange={handleChange}
-                        className="w-10 h-10 border border-gray-300 rounded-md shadow-sm"
-                    />
-                    <button onClick={colorPickerHandler} className="ml-1 text-sm text-gray-700 hover:text-violet-600 p-2 rounded-lg shadow-md hover:shadow-lg">
-                        Color
+                <div className={`flex flex-col gap-2 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.4, 0, 0.2, 1)] ${tools.isWrap ? 'max-h-0 opacity-0 scale-y-90 translate-y-2' : 'max-h-[500px] opacity-100 scale-y-100 translate-y-0'}`}>
+                    <button onClick={undoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
+                        <UndoDot size={18} />
+                        <span className="ml-1 text-sm">Undo</span>
                     </button>
-                </div>
-                <div className="flex flex-col items-center justify-center ml-1 text-sm">
-                    <input
-                        name="pencilLineWidth"
-                        type="range"
-                        value={input.pencilLineWidth}
-                        onChange={handleChange}
-                        min={1}
-                        max={20}
-                        className="w-24 mb-2"
-                    />
-                    <span>{input.pencilLineWidth}px</span>
+                    <button onClick={redoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
+                        <RedoDot size={18} />
+                        <span className="ml-1 text-sm">Redo</span>
+                    </button>
+                    <button
+                        onClick={deleteHandler}
+                        className={`flex items-center justify-center text-sm ${isErasing ? 'text-red-500' : 'text-gray-700'} hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}
+                    >
+                        <Eraser size={18} />
+                        <span className="ml-1 text-sm">Erase</span>
+                    </button>
+                    <div className="flex items-center justify-center">
+                        <input
+                            name="color"
+                            ref={colorRef}
+                            type="color"
+                            value={input.color}
+                            onChange={handleChange}
+                            className="w-10 h-10 border border-gray-300 rounded-md shadow-sm"
+                        />
+                        <button onClick={colorPickerHandler} className="ml-1 text-sm text-gray-700 hover:text-violet-600 p-2 rounded-lg shadow-md hover:shadow-lg">
+                            Color
+                        </button>
+                    </div>
+                    <div className="flex flex-col items-center justify-center ml-1 text-sm">
+                        <input
+                            name="pencilLineWidth"
+                            type="range"
+                            value={input.pencilLineWidth}
+                            onChange={handleChange}
+                            min={1}
+                            max={20}
+                            className="w-24 mb-2"
+                        />
+                        <span>{input.pencilLineWidth}px</span>
+                    </div>
                 </div>
             </div>
             <canvas
