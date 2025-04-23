@@ -4,7 +4,9 @@ import { useInputChange } from '../hooks/inputeChange';
 
 export const Canva = () => {
     const canvasRef = useRef(null);
+    const ctxRef = useRef(null);
     const colorRef = useRef(null);
+    const linesRef = useRef([]);
     const [isDraw, setDraw] = useState(false);
     const [isErasing, setIsErasing] = useState(false);
     const [lines, setLines] = useState([]);
@@ -13,11 +15,7 @@ export const Canva = () => {
         color: '#fff',
         pencilLineWidth: 2
     });
-    const [tools, setTools] = useState(
-        {
-            isWrap: false
-        }
-    )
+    const [tools, setTools] = useState({ isWrap: false });
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -32,8 +30,17 @@ export const Canva = () => {
     }, []);
 
     useEffect(() => {
+        linesRef.current = lines;
+    }, [lines]);
+
+    useEffect(() => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
+        ctxRef.current = ctx;
+    }, []);
+
+    useEffect(() => {
+        const ctx = ctxRef.current;
         ctx.lineCap = 'round';
         const drawLine = (line) => {
             ctx.beginPath();
@@ -45,32 +52,24 @@ export const Canva = () => {
             });
             ctx.stroke();
         };
-        const redrawCanvas = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            lines.forEach(drawLine);
-        };
-        redrawCanvas();
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        lines.forEach(drawLine);
     }, [lines]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = ctxRef.current;
         ctx.lineCap = 'round';
         let animationFrameId;
 
         const getOffset = (e) => {
             const rect = canvas.getBoundingClientRect();
-            if (e.touches && e.touches.length > 0) {
-                return {
-                    offsetX: e.touches[0].clientX - rect.left,
-                    offsetY: e.touches[0].clientY - rect.top
-                };
-            } else {
-                return {
-                    offsetX: e.offsetX,
-                    offsetY: e.offsetY
-                };
-            }
+            const x = e.touches ? e.touches[0].clientX : e.clientX;
+            const y = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                offsetX: x - rect.left,
+                offsetY: y - rect.top
+            };
         };
 
         const startDrawing = (e) => {
@@ -78,16 +77,13 @@ export const Canva = () => {
             setDraw(true);
             if (isErasing) return;
             const { offsetX, offsetY } = getOffset(e);
-            setLines((prev) => [
-                ...prev,
-                {
-                    x: offsetX,
-                    y: offsetY,
-                    color: input.color,
-                    pencilLineWidth: input.pencilLineWidth,
-                    path: []
-                }
-            ]);
+            linesRef.current.push({
+                x: offsetX,
+                y: offsetY,
+                color: input.color,
+                pencilLineWidth: input.pencilLineWidth,
+                path: []
+            });
             setHistory([]);
         };
 
@@ -98,105 +94,82 @@ export const Canva = () => {
 
             animationFrameId = requestAnimationFrame(() => {
                 const { offsetX, offsetY } = getOffset(e);
-
                 if (isErasing) {
-                    setLines((prev) =>
-                        prev.filter((line) =>
-                            !line.path.some(
-                                (point) =>
-                                    Math.sqrt(
-                                        (point.x - offsetX) ** 2 +
-                                        (point.y - offsetY) ** 2
-                                    ) < 10
-                            )
-                        )
+                    linesRef.current = linesRef.current.filter(line =>
+                        !line.path.some(point => (
+                            Math.hypot(point.x - offsetX, point.y - offsetY) < 10
+                        ))
                     );
+                    setLines([...linesRef.current]);
                     return;
                 }
-
-                setLines((prev) => {
-                    const updated = [...prev];
-                    updated[updated.length - 1].path.push({
-                        x: offsetX,
-                        y: offsetY,
-                        color: input.color,
-                        pencilLineWidth: input.pencilLineWidth
-                    });
-
-                    const currentLine = updated[updated.length - 1];
-                    ctx.beginPath();
-                    ctx.moveTo(currentLine.x, currentLine.y);
-                    currentLine.path.forEach((point) => {
-                        ctx.lineWidth = point.pencilLineWidth;
-                        ctx.strokeStyle = point.color;
-                        ctx.lineTo(point.x, point.y);
-                    });
-                    ctx.stroke();
-
-                    return updated;
+                const currentLine = linesRef.current[linesRef.current.length - 1];
+                currentLine.path.push({
+                    x: offsetX,
+                    y: offsetY,
+                    color: input.color,
+                    pencilLineWidth: input.pencilLineWidth
                 });
+                ctx.beginPath();
+                ctx.moveTo(currentLine.x, currentLine.y);
+                currentLine.path.forEach(point => {
+                    ctx.lineWidth = point.pencilLineWidth;
+                    ctx.strokeStyle = point.color;
+                    ctx.lineTo(point.x, point.y);
+                });
+                ctx.stroke();
             });
         };
-
         const stopDrawing = (e) => {
             e?.preventDefault();
             setDraw(false);
+            setLines([...linesRef.current]);
         };
-
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseleave', stopDrawing);
-
-        canvas.addEventListener('touchstart', startDrawing, { passive: false });
-        canvas.addEventListener('touchmove', draw, { passive: false });
-        canvas.addEventListener('touchend', stopDrawing, { passive: false });
-        canvas.addEventListener('touchcancel', stopDrawing, { passive: false });
-
+        canvas.addEventListener('pointerdown', startDrawing);
+        canvas.addEventListener('pointermove', draw);
+        canvas.addEventListener('pointerup', stopDrawing);
+        canvas.addEventListener('pointerleave', stopDrawing);
         return () => {
-            canvas.removeEventListener('mousedown', startDrawing);
-            canvas.removeEventListener('mousemove', draw);
-            canvas.removeEventListener('mouseup', stopDrawing);
-            canvas.removeEventListener('mouseleave', stopDrawing);
-            canvas.removeEventListener('touchstart', startDrawing);
-            canvas.removeEventListener('touchmove', draw);
-            canvas.removeEventListener('touchend', stopDrawing);
-            canvas.removeEventListener('touchcancel', stopDrawing);
+            canvas.removeEventListener('pointerdown', startDrawing);
+            canvas.removeEventListener('pointermove', draw);
+            canvas.removeEventListener('pointerup', stopDrawing);
+            canvas.removeEventListener('pointerleave', stopDrawing);
         };
     }, [isDraw, input, isErasing]);
-
     const undoHandler = useCallback(() => {
-        if (!lines.length) return;
-        const newLines = [...lines];
-        const popped = newLines.pop();
-        setLines(newLines);
-        setHistory([...history, popped]);
-    }, [lines, history]);
-
-    const redoHandler = useCallback(() => {
-        if (!history.length) return;
-        const newHistory = [...history];
-        const restored = newHistory.pop();
-        setHistory(newHistory);
-        setLines([...lines, restored]);
-    }, [lines, history]);
-
-    const deleteHandler = useCallback(() => setIsErasing((prev) => !prev), []);
-
-    const colorPickerHandler = useCallback(() => {
-        colorRef.current.click();
+        setLines(prev => {
+            if (!prev.length) return prev;
+            const updated = [...prev];
+            const popped = updated.pop();
+            setHistory(h => [...h, popped]);
+            linesRef.current = updated;
+            return updated;
+        });
     }, []);
-
-    const toolsHideHandler = () => {
-        setTools({ ...tools, isWrap: !tools.isWrap })
-    }
-
+    const redoHandler = useCallback(() => {
+        setHistory(prev => {
+            if (!prev.length) return prev;
+            const updated = [...prev];
+            const restored = updated.pop();
+            setLines(l => {
+                const newLines = [...l, restored];
+                linesRef.current = newLines;
+                return newLines;
+            });
+            return updated;
+        });
+    }, []);
+    const deleteHandler = useCallback(() => setIsErasing(prev => !prev), []);
+    const colorPickerHandler = useCallback(() => colorRef.current.click(), []);
+    const toolsHideHandler = useCallback(() => {
+        setTools(prev => ({ ...prev, isWrap: !prev.isWrap }));
+    }, []);
     return (
         <div className="relative flex justify-center items-center">
-            <div className='absolute top-4 right-4  bg-white/90 backdrop-blur-sm rounded-lg shadow-lg px-2 py-2 flex flex-col gap-2'>
-                <div className='border-2 border-dotted p-1 rounded-lg flex items-center justify-center gap-1 cursor-pointer' onClick={toolsHideHandler}>
+            <div className={`absolute top-4 right-4  bg-white/90 backdrop-blur-sm rounded-lg shadow-lg ${tools.isWrap ? "p-1" : "p-2  gap-2"} flex flex-col`}>
+                <div className='border-2 font-bold border-dotted p-1 rounded-lg flex items-center justify-center gap-1 cursor-pointer' onClick={toolsHideHandler}>
                     {tools.isWrap ? <ChevronsUp size={17} /> : <ChevronsDown size={17} />}
-                    <span>Tools</span>
+                    <span>{tools.isWrap ? "Open" : "Close"}</span>
                 </div>
                 <div className={`flex flex-col gap-2 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.4, 0, 0.2, 1)] ${tools.isWrap ? 'max-h-0 opacity-0 scale-y-90 translate-y-2' : 'max-h-[500px] opacity-100 scale-y-100 translate-y-0'}`}>
                     <button onClick={undoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
@@ -207,10 +180,7 @@ export const Canva = () => {
                         <RedoDot size={18} />
                         <span className="ml-1 text-sm">Redo</span>
                     </button>
-                    <button
-                        onClick={deleteHandler}
-                        className={`flex items-center justify-center text-sm ${isErasing ? 'text-red-500' : 'text-gray-700'} hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}
-                    >
+                    <button onClick={deleteHandler} className={`flex items-center justify-center text-sm ${isErasing ? 'text-red-500' : 'text-gray-700'} hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}>
                         <Eraser size={18} />
                         <span className="ml-1 text-sm">Erase</span>
                     </button>
@@ -235,7 +205,7 @@ export const Canva = () => {
                             onChange={handleChange}
                             min={1}
                             max={20}
-                            className="w-24 mb-2"
+                            className="w-24"
                         />
                         <span>{input.pencilLineWidth}px</span>
                     </div>
