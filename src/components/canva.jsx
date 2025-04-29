@@ -13,7 +13,7 @@ export const Canva = () => {
     const [history, setHistory] = useState([]);
     const { input, handleChange } = useInputChange({
         color: '#fff',
-        pencilLineWidth: 2
+        pencilLineWidth: 1
     });
     const [tools, setTools] = useState({ isWrap: false });
 
@@ -162,6 +162,16 @@ export const Canva = () => {
         });
     }, []);
 
+
+    const downloadHandler = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const imageType = 'jpeg';
+        const link = document.createElement('a');
+        link.download = `my-drawing-${new Date().toLocaleString()}.png`;
+        link.href = canvas.toDataURL(imageType);
+        link.click();
+    }
     const deleteHandler = useCallback(() => setIsErasing(prev => !prev), []);
     const colorPickerHandler = useCallback(() => colorRef.current.click(), []);
     const toolsHideHandler = useCallback(() => {
@@ -214,15 +224,14 @@ export const Canva = () => {
                             />
                             <span>{input.pencilLineWidth}px</span>
                         </div>
-                        <ArrowDownToLine size={28} className='m-auto border-2 border-dotted rounded-4xl p-1 bg-black text-white cursor-pointer' />
+                        <ArrowDownToLine onClick={downloadHandler} size={28} className='m-auto border-2 border-dotted rounded-4xl p-1 bg-black text-white cursor-pointer' />
                     </div>
                 </div>
             </div>
-
             <canvas
                 ref={canvasRef}
                 style={{ display: 'block', cursor: isErasing ? 'cell' : 'crosshair', touchAction: 'none' }}
-                className="bg-black w-full h-full"
+                className="bg-black min-w-full  min-h-full"
             />
         </div>
     );
