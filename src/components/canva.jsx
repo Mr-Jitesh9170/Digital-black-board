@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { UndoDot, RedoDot, Eraser, ChevronsDown, ChevronsUp, ArrowDownToLine } from 'lucide-react';
+import { UndoDot, RedoDot, Eraser, ArrowDownToLine, CirclePlus, CircleX } from 'lucide-react';
 import { useInputChange } from '../hooks/inputeChange';
 
 export const Canva = () => {
@@ -7,6 +7,7 @@ export const Canva = () => {
     const ctxRef = useRef(null);
     const colorRef = useRef(null);
     const linesRef = useRef([]);
+    const autoScrollRef = useRef(null)
     const [isDraw, setDraw] = useState(false);
     const [isErasing, setIsErasing] = useState(false);
     const [lines, setLines] = useState([]);
@@ -16,6 +17,90 @@ export const Canva = () => {
         pencilLineWidth: 1
     });
     const [tools, setTools] = useState({ isWrap: false });
+    const [cursor, setCursor] = useState(
+        {
+            x: 0,
+            y: 0
+        }
+    )
+
+    const scrollSpeed = 10;
+    const threshold = 50;
+    const intervalTime = 30;
+
+    useEffect(() => {
+        const scrollContainer = autoScrollRef.current;
+        if (!scrollContainer) return;
+
+        let intervalId = null;
+
+        const startAutoScroll = () => {
+            if (intervalId) clearInterval(intervalId);
+            intervalId = setInterval(() => {
+                const rect = scrollContainer.getBoundingClientRect();
+                const { x, y } = cursor;
+
+                if (x < threshold) {
+                    scrollContainer.scrollLeft -= scrollSpeed;
+                } else if (x > rect.width - threshold) {
+                    scrollContainer.scrollLeft += scrollSpeed;
+                }
+
+                if (y < threshold) {
+                    scrollContainer.scrollTop -= scrollSpeed;
+                } else if (y > rect.height - threshold) {
+                    scrollContainer.scrollTop += scrollSpeed;
+                }
+            }, intervalTime);
+        };
+
+        const stopAutoScroll = () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        };
+
+        const shouldScroll = () => {
+            const rect = scrollContainer.getBoundingClientRect();
+            const { x, y } = cursor;
+            return (
+                x >= 0 &&
+                x <= rect.width &&
+                y >= 0 &&
+                y <= rect.height &&
+                (x < threshold ||
+                    x > rect.width - threshold ||
+                    y < threshold ||
+                    y > rect.height - threshold)
+            );
+        };
+
+        if (shouldScroll()) {
+            startAutoScroll();
+        } else {
+            stopAutoScroll();
+        }
+
+        return () => stopAutoScroll();
+    }, [cursor]);
+
+
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            const rect = autoScrollRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            setCursor({
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+            });
+        };
+        window.addEventListener("pointermove", handleMouseMove);
+        return () => {
+            window.removeEventListener("pointermove", handleMouseMove);
+        };
+    }, []);
+
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -61,7 +146,6 @@ export const Canva = () => {
         const ctx = ctxRef.current;
         ctx.lineCap = 'round';
         let animationFrameId;
-
         const getOffset = (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = e.touches ? e.touches[0].clientX : e.clientX;
@@ -71,7 +155,6 @@ export const Canva = () => {
                 offsetY: y - rect.top
             };
         };
-
         const startDrawing = (e) => {
             e.preventDefault();
             setDraw(true);
@@ -86,12 +169,10 @@ export const Canva = () => {
             });
             setHistory([]);
         };
-
         const draw = (e) => {
             if (!isDraw && !isErasing) return;
             e.preventDefault();
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
-
             animationFrameId = requestAnimationFrame(() => {
                 const { offsetX, offsetY } = getOffset(e);
                 if (isErasing) {
@@ -162,7 +243,6 @@ export const Canva = () => {
         });
     }, []);
 
-
     const downloadHandler = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -179,12 +259,11 @@ export const Canva = () => {
     }, []);
 
     return (
-        <div className="relative flex justify-center items-center">
-            <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-500 p-[2px] rounded-2xl shadow-[0_0_25px_4px_rgba(255,100,255,0.5)]">
-                <div className={`bg-white/90 backdrop-blur-sm rounded-xl shadow-inner ${tools.isWrap ? "p-1" : "p-2 gap-2"} flex flex-col`}>
-                    <div className='border-2 font-bold border-dotted p-1 rounded-lg flex items-center justify-center gap-1 cursor-pointer' onClick={toolsHideHandler}>
-                        {tools.isWrap ? <ChevronsUp size={17} /> : <ChevronsDown size={17} />}
-                        <span>{tools.isWrap ? "Open" : "Close"}</span>
+        <div className="flex" ref={autoScrollRef}>
+            <div className="m-2 absolute bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-500 p-[2px] rounded-2xl shadow-[0_0_25px_4px_rgba(255,100,255,0.5)]">
+                <div className={`bg-white/90 backdrop-blur-sm  shadow-inner ${tools.isWrap ? "max-w-10 h-10 rounded-full" : "p-2 gap-2 rounded-xl"} flex flex-col`}>
+                    <div className='m-auto cursor-pointer' onClick={toolsHideHandler}>
+                        {tools.isWrap ? <CirclePlus className='hover:text-blue-500' size={30} /> : <CircleX size={30} className='hover:text-red-800' />}
                     </div>
                     <div className={`flex flex-col gap-2 overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.4, 0, 0.2, 1)] ${tools.isWrap ? 'max-h-0 opacity-0 scale-y-90 translate-y-2' : 'max-h-[500px] opacity-100 scale-y-100 translate-y-0'}`}>
                         <button onClick={undoHandler} className="flex items-center justify-center text-sm text-gray-700 hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg">
@@ -231,7 +310,7 @@ export const Canva = () => {
             <canvas
                 ref={canvasRef}
                 style={{ display: 'block', cursor: isErasing ? 'cell' : 'crosshair', touchAction: 'none' }}
-                className="bg-black min-w-full  min-h-full"
+                className="bg-black min-h-auto  min-w-auto"
             />
         </div>
     );
