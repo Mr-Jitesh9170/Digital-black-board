@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { UndoDot, RedoDot, Eraser, ArrowDownToLine, CirclePlus, CircleX } from 'lucide-react';
+import { UndoDot, RedoDot, Eraser, ArrowDownToLine, CirclePlus, CircleX, Trash } from 'lucide-react';
 import { useInputChange } from '../hooks/inputeChange';
 
 export const Canva = () => {
@@ -242,7 +242,9 @@ export const Canva = () => {
             return updated;
         });
     }, []);
-
+    const clearAll = () => {
+        setLines([])
+    }
     const downloadHandler = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -277,6 +279,10 @@ export const Canva = () => {
                         <button onClick={deleteHandler} className={`flex items-center justify-center text-sm ${isErasing ? 'text-red-500' : 'text-gray-700'} hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}>
                             <Eraser size={18} />
                             <span className="ml-1 text-sm">Erase</span>
+                        </button>
+                        <button onClick={clearAll} className={`flex items-center justify-center text-sm ${isErasing ? 'text-red-500' : 'text-gray-700'} hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}>
+                            <Trash size={18} />
+                            <span className="ml-1 text-sm">Clear</span>
                         </button>
                         <div className="flex items-center justify-center">
                             <input
