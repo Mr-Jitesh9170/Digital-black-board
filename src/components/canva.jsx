@@ -14,18 +14,23 @@ const Canva = () => {
         color: '#fff',
         pencilLineWidth: 1
     });
+
     useEffect(() => {
         const canvas = canvasRef.current;
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
         const ctx = canvas.getContext('2d');
         ctxRef.current = ctx;
-    }, []);
-
+        const resizeCanvas = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            setLines((prev) => [...prev]);
+        };
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        return () => window.removeEventListener('resize', resizeCanvas);
+    }, []); 
     useEffect(() => {
         linesRef.current = lines;
-    }, [lines]);
-
+    }, [lines]); 
     useEffect(() => {
         const ctx = ctxRef.current;
         ctx.lineCap = 'round';
@@ -41,8 +46,7 @@ const Canva = () => {
         };
         ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         lines.forEach(drawLine);
-    }, [lines]);
-
+    }, [lines]); 
     useEffect(() => {
         const canvas = canvasRef.current;
         const ctx = ctxRef.current;
@@ -72,8 +76,8 @@ const Canva = () => {
             setHistory([]);
         };
         const draw = (e) => {
-            e.preventDefault();
             if (!isDraw && !isErasing) return;
+            e.preventDefault();
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             animationFrameId = requestAnimationFrame(() => {
                 const { offsetX, offsetY } = getOffset(e);
@@ -118,14 +122,13 @@ const Canva = () => {
             canvas.removeEventListener('pointerup', stopDrawing);
             canvas.removeEventListener('pointerleave', stopDrawing);
         };
-    }, [isDraw, input, isErasing]);
-
+    }, [isDraw, input, isErasing]); 
     return (
         <div className="w-screen h-screen">
             <Tools setLines={setLines} setHistory={setHistory} linesRef={linesRef} setIsErasing={setIsErasing} isErasing={isErasing} handleChange={handleChange} input={input} canvasRef={canvasRef} />
             <canvas
                 ref={canvasRef}
-                className={` w-full h-full bg-black block ${isErasing ? "cursor-cell" : "cursor-crosshair"}`}
+                className={`bg-black w-full h-full block touch-none ${isErasing ? 'cursor-cell' : 'cursor-crosshair'}`}
             />
         </div>
     );
