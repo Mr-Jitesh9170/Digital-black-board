@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState } from "react";
-import { UndoDot, RedoDot, Eraser, ArrowDownToLine, CirclePlus, CircleX, Trash } from 'lucide-react'; 
+import { UndoDot, RedoDot, Eraser, ArrowDownToLine, CirclePlus, CircleX, Trash } from 'lucide-react';
 
 const Tools = ({ setLines, setHistory, linesRef, setIsErasing, isErasing, handleChange, input, canvasRef }) => {
     const colorRef = useRef(null);
-    const [tools, setTools] = useState({ isWrap: false }); 
+    const [tools, setTools] = useState({ isWrap: false });
     const undoHandler = useCallback(() => {
         setLines(prev => {
             if (!prev.length) return prev;
@@ -13,7 +13,7 @@ const Tools = ({ setLines, setHistory, linesRef, setIsErasing, isErasing, handle
             linesRef.current = updated;
             return updated;
         });
-    }, []); 
+    }, []);
     const redoHandler = useCallback(() => {
         setHistory(prev => {
             if (!prev.length) return prev;
@@ -63,7 +63,7 @@ const Tools = ({ setLines, setHistory, linesRef, setIsErasing, isErasing, handle
                         <Eraser size={18} />
                         <span className="ml-1 text-sm">Erase</span>
                     </button>
-                    <button onClick={clearAll} className={`flex items-center justify-center text-sm ${isErasing ? 'text-red-500' : 'text-gray-700'} hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}>
+                    <button onClick={clearAll} className={`flex items-center justify-center text-sm hover:text-violet-600 transition p-2 rounded-lg shadow-md hover:shadow-lg`}>
                         <Trash size={18} />
                         <span className="ml-1 text-sm">Clear</span>
                     </button>
@@ -98,5 +98,5 @@ const Tools = ({ setLines, setHistory, linesRef, setIsErasing, isErasing, handle
         </div>
     )
 }
- 
+
 export default Tools
